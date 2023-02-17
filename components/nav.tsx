@@ -30,6 +30,7 @@ export default function Nav() {
             anchor={'left'}
             ModalProps={{BackdropProps: {sx: {backgroundColor: alpha(theme.palette.primary.main, 0.05)}}}}
             PaperProps={{elevation: 8, sx: {paddingTop: 1.5, width: 200, backgroundColor: theme.palette.primary.main}}}
+            sx={{display: {xl: 'none'}}}
         >
             <NavItems />
         </Drawer>
