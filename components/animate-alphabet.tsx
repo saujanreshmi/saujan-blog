@@ -17,6 +17,7 @@ const alphabetArray : Alphabet[] = ['A','B','C','D','E','F','G','H','I','J','K',
 export default function AnimateAlphabet({alphabet, strong}: {alphabet: Alphabet, strong?:boolean}) {
     const [generateAgain, setGenerateAgain] = useState(false);
     const [generatedAlphabet, setGeneratedAlphabet] = useState<Alphabet>('A');
+
     useEffect(() => {
         setTimeout(() => {
             const alphabetIndex = Math.floor(Math.random() * (26 - 0) + 0);
@@ -26,7 +27,7 @@ export default function AnimateAlphabet({alphabet, strong}: {alphabet: Alphabet,
             } else {
                 setGeneratedAlphabet(alphabet);
             }
-        }, 100)
+        }, 150)
     }, [generateAgain])
     return <StyledTypography color={strong && generatedAlphabet === alphabet ? 'primary': 'inherit'} variant={'h2'} display={'inline'}>{generatedAlphabet}</StyledTypography>
 }

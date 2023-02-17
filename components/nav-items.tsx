@@ -32,9 +32,9 @@ const StyledListItemText = styled(ListItemText)<ListItemTextProps>(({theme}) => 
 export default function NavItems() {
     const [open, setOpen] = useState({
         '2022': true,
-        '2022-january': false,
+        '2022-january': true,
         '2023': true,
-        '2023-february': false,
+        '2023-february': true,
     });
 
     function handleListItemButtonClick(value: string) {
