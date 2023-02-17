@@ -1,6 +1,7 @@
 import '@/styles/globals.css'
 import type { AppProps } from 'next/app'
 import {createTheme, ThemeProvider} from "@mui/material/styles";
+import Nav from "@/components/nav";
 
 const theme = createTheme({
   palette: {
@@ -36,13 +37,14 @@ const theme = createTheme({
       fontWeight: 400
     },
     body2: {
-      fontWeight: 200,
+      fontWeight: 300,
       lineHeight: 1.25
-    }
+    },
   }
 })
 export default function App({ Component, pageProps }: AppProps) {
   return <ThemeProvider theme={theme}>
+    <Nav />
     <Component {...pageProps} />
   </ThemeProvider>
 }

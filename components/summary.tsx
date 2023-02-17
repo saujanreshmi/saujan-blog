@@ -3,7 +3,6 @@ import {Typography, List, ListItem, ListItemIcon, ListItemText, useTheme} from "
 import CircleIcon from '@mui/icons-material/Circle';
 
 export default function Summary({list}: { list: string[] }) {
-    const theme = useTheme();
     return <Fragment>
         <Typography variant={'h5'} sx={{marginTop: 5}}>Summary</Typography>
         <List>

@@ -1,6 +1,6 @@
 import {Grid, Paper, Typography} from "@mui/material";
 
-export default function Header({day, month, year}:{day: '01'|'02'|'03'|'04'|'05', month: 'January'|'February'|'March'|'April', year: '2022'|'2023'}) {
+export default function Header({day, month, year}:{day: '01'|'15', month: 'January'|'February', year: '2022'|'2023'}) {
     return <Grid container sx={{marginTop: 5}}>
         <Grid item>
             <Typography variant={'h1'}>{day}</Typography>

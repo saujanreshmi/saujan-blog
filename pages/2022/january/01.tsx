@@ -1,6 +1,5 @@
 import Head from "next/head";
 import Layout from "@/components/layout";
-import {Grid, Paper, Typography} from "@mui/material";
 import {Fragment} from "react";
 import StyledDivider from "@/components/divider";
 import Header from "@/components/header";
@@ -11,9 +10,9 @@ export default function Home() {
     return (<>
         <Head>
             <title>2022 - January 01</title>
-            <meta name="description" content="Built by Saujan Thapa with ❤"/>
+            <meta name="description" content="Built by @saujanreshmi with ❤️" />
             <meta name="viewport" content="width=device-width, initial-scale=1"/>
-            <link rel="icon" href="/favicon.ico"/>
+            <link rel="icon" href="https://avatars.githubusercontent.com/u/18434969?s=40&v=4"/>
         </Head>
         <Layout>
             <Fragment>
