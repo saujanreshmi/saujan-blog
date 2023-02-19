@@ -1,12 +1,13 @@
 import {
     Drawer,
-    useTheme, AppBar, Toolbar, IconButton, alpha, Box, Typography
+    useTheme, AppBar, Toolbar, IconButton, alpha, Box, Typography, Avatar
 } from "@mui/material";
 import {Fragment, useState} from "react";
 
 import MenuIcon from '@mui/icons-material/Menu';
 import NavItems from "@/components/nav-items";
 import HideOnScroll from "@/components/hide-on-scroll";
+import Image from "next/image";
 
 export default function Nav() {
     const theme = useTheme();
