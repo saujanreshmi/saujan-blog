@@ -92,6 +92,8 @@ body {
   background: #fff
 }
 
+
+
 a {
   color: inherit;
   text-decoration: none;
@@ -101,4 +103,42 @@ a {
   html {
     color-scheme: dark;
   }
+}
+
+.scroll-container {
+  height: 320px;
+}
+
+.scroll-area {
+  height: 100px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.scroll-container,
+.scroll-area {
+  width: 100%;
+  font-size: 60px;
+}
+
+.scroll-container {
+  overflow: auto;
+  scroll-snap-type: y mandatory;
+  cursor: all-scroll;
+}
+
+.scroll-area {
+  scroll-snap-align: start;
+  background-color: black;
+}
+
+.scroll-container::-webkit-scrollbar{
+  display: none;
+}
+
+.scroll-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
 }

@@ -27,6 +27,9 @@ const theme = createTheme({
     h2: {
       fontWeight: 400
     },
+    h3: {
+      fontWeight: 300
+    },
     h4: {
       fontWeight: 400,
       fontSize: '1.5rem'
@@ -44,7 +47,9 @@ const theme = createTheme({
       fontWeight: 300,
       lineHeight: 1.25
     },
-
+    subtitle2: {
+      color: '#999'
+    }
   }
 })
 export default function App({ Component, pageProps }: AppProps) {
