@@ -9,7 +9,7 @@ import Summary from "@/components/summary";
 export default function Home() {
     return (<>
         <Head>
-            <title>2023 - February 15</title>
+            <title>2023 February 15</title>
             <meta name="description" content="Built by @saujanreshmi with ❤️" />
             <meta name="viewport" content="width=device-width, initial-scale=1"/>
             <link rel="icon" href="https://avatars.githubusercontent.com/u/18434969?s=40&v=4"/>
