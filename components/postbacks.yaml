@@ -1,0 +1,482 @@
+openapi: 3.0.3
+info:
+  title: Agreement Notifications
+  version: "1.0"
+  description: >-
+    Changes in v0.1.1
+
+      - Added payment metadata to paymentNotificationDetails
+
+      - Added agreement metadata to agreementNotification
+
+    Changes in v0.1.0
+
+      - Added change logging to yaml file
+servers:
+  - url: /agreements/v1
+paths:
+  /notifications:
+    post:
+      summary: "Receive a notification about an agreement, payment method or payment."
+      description: "This endpoint is called by Paypa Plane whenever a notification is generated, such as when a payment agreement is created, or when a payment is processed."
+      requestBody:
+        description: "A cloud event containing the details of the notification."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/cloudEventNotification"
+      responses:
+        "200":
+          description: "This indicates the notification was processed successfully and does not need to be re-sent."
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: OK
+
+components:
+  schemas:
+    cloudEventNotification:
+      type: object
+      description: "The root object in the request when a notification is sent. It is a CloudEvent (https://cloudevents.io/). Data is an AgreementNotification and will be encoded as a JSON string. It is shown here as an object for readability."
+      required:
+        - id
+        - source
+        - specversion
+        - type
+        - datacontenttype
+        - time
+        - data
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "A unique identifier for the event. If an event is re-sent with the same id it should be treated as a duplicate."
+        source:
+          type: string
+          description: "Identifies the context in which an event happened."
+          minLength: 1
+          maxLength: 256
+          example: "https://apis.paypaplane.com/agreements/v1/notifications"
+        specversion:
+          type: string
+          description: "The version of the CloudEvents specification which the event uses."
+          minLength: 1
+          maxLength: 16
+          example: "1.0"
+        type:
+          type: string
+          description: "The type of the event."
+          minLength: 1
+          maxLength: 256
+          example: agreement_notification.v1
+        datacontenttype:
+          type: string
+          description: "The data type contained in the 'data' field."
+          minLength: 1
+          maxLength: 256
+          example: application/json
+        time:
+          type: string
+          format: date-time
+          description: "Timestamp of when the occurrence happened. ISO 8601"
+          example: "2018-04-05T17:31:00Z"
+        data:
+          description: A JSON string. It needs to be decoded before you can use it as an object. For readability, it is shown as an object in the examples.
+          oneOf:
+            - type: object
+              $ref: "#/components/schemas/agreementNotification"
+            - type: string
+
+    agreementNotification:
+      type: object
+      description: "The notification data."
+      required:
+        - agreementId
+        - agreementStatus
+        - event
+        - initiator
+        - notificationType
+        - notificationDetails
+      properties:
+        agreementId:
+          type: string
+          format: uuid
+          description: "The ID of the Paypa Plane payment agreement."
+        agreementStatus:
+          $ref: "#/components/schemas/agreementStatusType"
+        event:
+          $ref: "#/components/schemas/agreementNotificationEventType"
+        initiator:
+          $ref: "#/components/schemas/agreementEventInitiatorType"
+        notificationType:
+          $ref: "#/components/schemas/notificationType"
+        notificationDetails:
+          $ref: "#/components/schemas/notificationDetails"
+        agreementMetadata:
+          allOf:
+            - $ref: "#/components/schemas/metadata"
+          description: "Metadata set on the agreement during creation."
+
+    notificationDetails:
+      description: "Details of the event that triggered the notification to be sent."
+      oneOf:
+        - $ref: "#/components/schemas/paymentMethodNotificationDetails"
+        - $ref: "#/components/schemas/paymentNotificationDetails"
+        - $ref: "#/components/schemas/agreementNotificationDetails"
+      discriminator:
+        propertyName: notificationType
+        mapping:
+          AGREEMENT: "#/components/schemas/AgreementNotificationDetails"
+          PAYMENT_METHOD: "#/components/schemas/paymentMethodNotificationDetails"
+          PAYMENT: "#/components/schemas/paymentNotificationDetails"
+
+    agreementNotificationDetails:
+      type: object
+      description: "Details of what happened to the agreement to trigger the sending of the notification. Currently this is an empty object."
+      properties:
+        additional_information:
+          type: string
+
+    paymentMethodNotificationDetails:
+      type: object
+      description: "Details of the payment method change. Included when notificationType is PAYMENT_METHOD."
+      required:
+        - paymentMethodId
+        - paymentModuleId
+        - paymentMethodStatus
+        - event
+        - paymentModuleType
+        - moduleSpecificInfo
+      properties:
+        paymentMethodId:
+          type: string
+          format: uuid
+        paymentModuleId:
+          type: string
+          format: uuid
+        paymentMethodStatus:
+          $ref: "#/components/schemas/paymentMethodStatusType"
+        event:
+          $ref: "#/components/schemas/paymentMethodEventType"
+        paymentModuleType:
+          $ref: "#/components/schemas/paymentModuleType"
+        moduleSpecificInfo:
+          oneOf:
+            - $ref: "#/components/schemas/paytoModuleInfo"
+
+    paytoModuleInfo:
+      type: object
+      description: "PayTo specific information, included in paymentMethodNotificationDetails when the paymentModuleType is PAYTO."
+      required:
+        - mandateDetails
+        - action
+        - resolution
+      properties:
+        mandateDetails:
+          $ref: "#/components/schemas/notificationMandateDetails"
+        action:
+          $ref: "#/components/schemas/notificationMandateActionDetails"
+        resolution:
+          $ref: "#/components/schemas/notificationMandateResolutionDetails"
+
+    notificationMandateDetails:
+      type: object
+      description: "The details of the NPP PayTo mandate."
+      required:
+        - mandateId
+        - mandateVersionNumber
+        - trigger
+        - mandateStatus
+      properties:
+        mandateId:
+          description: "Universally Unique IDentifier (UUID) version 1, as described in IETC RFC 4122 \"Universally Unique IDentifier (UUID) URN Namespace\" without the 4 hyphen separators.\r\nFor example: '00000000000010008000000000000000' instead of  '00000000-0000-1000-8000-000000000000' (without quotes)"
+          type: string
+          pattern: "^[a-f0-9]{12}1[a-f0-9]{3}[89ab][a-f0-9]{15}$"
+        mandateVersionNumber:
+          description: "Specifies a numeric string with a maximum length of 5 digits."
+          pattern: "^[0-9]{1,5}$"
+          type: "string"
+          example: "1"
+        trigger:
+          $ref: "#/components/schemas/paytoNotificationTriggerType"
+        mandateStatus:
+          $ref: "#/components/schemas/mandateStatusType"
+
+    notificationMandateResolutionDetails:
+      type: object
+      description: "The details of how the action on the NPP PayTo mandate was resolved."
+      required:
+        - reasonDescription
+        - reasonCode
+        - time
+      properties:
+        reasonDescription:
+          description: "An explanation of the reason code."
+          type: string
+          minLength: 1
+          maxLength: 256
+          example: "Customer accepted mandate"
+        reasonCode:
+          $ref: "#/components/schemas/mandateStatusReasonType"
+        time:
+          description: "The time the action was resolved on the MMS."
+          type: string
+          format: date-time
+
+    notificationMandateActionDetails:
+      type: object
+      description: "The details of the action taken on the NPP PayTo mandate."
+      required:
+        - actionIdentification
+        - actionType
+      properties:
+        actionIdentification:
+          description: "Universally Unique IDentifier (UUID) version 1, as described in IETC RFC 4122 \"Universally Unique IDentifier (UUID) URN Namespace\" without the 4 hyphen separators.\r\nFor example: '00000000000010008000000000000000' instead of  '00000000-0000-1000-8000-000000000000' (without quotes)"
+          type: string
+          pattern: "^[a-f0-9]{12}1[a-f0-9]{3}[89ab][a-f0-9]{15}$"
+        actionType:
+          $ref: "#/components/schemas/paytoMandateActionType"
+        actionStatus:
+          $ref: "#/components/schemas/paytoMandateActionStatusType"
+
+    paymentNotificationDetails:
+      type: object
+      description: The details of a payment notification. Included when notificationType is PAYMENT.
+      required:
+        - paymentId
+        - paymentModuleType
+        - paymentModuleId
+        - paymentMethodId
+        - amount
+        - currency
+        - status
+      properties:
+        paymentId:
+          type: string
+          format: uuid
+          description: "The ID of the payment, assigned by Paypa Plane."
+        paymentModuleType:
+          $ref: "#/components/schemas/paymentModuleType"
+        paymentModuleId:
+          description: "The ID of the payment module being used, assigned by Paypa Plane. (eg The ID of the specific configuration of PayTo being used.)"
+          type: string
+          format: uuid
+        paymentMethodId:
+          description: "The ID of the payment method being used, assigned by Paypa Plane. (eg Paypa Plane's ID of the PayTo mandate being used.)"
+          type: string
+          format: uuid
+        tokenId:
+          description: "The ID of the tokenised payment method being used, assigned by Paypa Plane. (eg A credit card tokenised for use with Square.)"
+          type: string
+          format: uuid
+        amount:
+          description: "The amount of the payment."
+          type: string
+          pattern: "^[0-9]*\\.[0-9]*$"
+          example: "123.45"
+        currency:
+          description: "The currency the amount is in. An ISO 4217 currency code."
+          type: string
+          pattern: "^[A-Z]{3}$"
+          example: AUD
+        status:
+          $ref: "#/components/schemas/paymentStatusType"
+        statusDetail:
+          description: "Payment status details. Used when a payment fails."
+          type: string
+          example:
+        metadata:
+          allOf:
+            - $ref: "#/components/schemas/metadata"
+          description: "Metadata set on the payment during initiation."
+    metadata:
+      type: object
+      maxProperties: 8
+      additionalProperties:
+        type: string
+        maxLength: 256
+      example: { "key1": "value2" }
+
+    #
+    # Enums
+    #
+
+    paymentStatusType:
+      type: string
+      description: "The event that triggered this notification to be sent."
+      enum:
+        - INITIATED
+        - SUCCEEDED
+        - FAILED
+      example: INITIATED
+
+    agreementNotificationEventType:
+      type: string
+      description: "The event that triggered this notification to be sent."
+      enum:
+        - AGREEMENT_CREATED
+        - INACTIVE_PAYMENT_METHOD_ADDED
+        - ACTIVE_PAYMENT_METHOD_ADDED
+        - PAYMENT_METHOD_UPDATED
+        - PAYMENT_METHOD_ACTIVATED
+        - PAYMENT_METHOD_DEACTIVATED
+        - PAYMENT_INITIATED
+        - PAYMENT_SUCCEEDED
+        - PAYMENT_FAILED
+        - AGREEMENT_CANCELLED
+        - AGREEMENT_CANCELLED_BY_TRIGGER
+        - AGREEMENT_CREATION_FAILED
+        - PAYMENT_METHOD_ADD_FAILED
+      example: PAYMENT_METHOD_ACTIVATED
+
+    agreementEventInitiatorType:
+      type: string
+      description: "The party that initiated the event that triggered this notification to be sent."
+      enum:
+        - DEBTOR
+        - CREDITOR
+      example: DEBTOR
+
+    agreementStatusType:
+      type: string
+      description: "The status of the Paypa Plane payment agreement. This is included regardless of whether the status has changed as a result of what the notification contains.\n"
+      enum:
+        - CREATED
+        - PENDING
+        - ACTIVE
+        - CANCELLED
+        - EXPIRED
+        - SUSPENDED
+        - IN_CARE
+        - COMPLETE
+        - PAUSED
+        - IN_RECOVERY
+        - MANUAL_INTERVENTION_REQUIRED
+        - AWAITING_CONFIRMATION
+      example: ACTIVE
+
+    notificationType:
+      type: string
+      description: "The type of the notification. This determines what notification details are included.\n<table><tr><th>Code</th><th>Description</th></tr><tr><td>AGREEMENT</td><td>A notification relating directly to an agreement</td></tr><tr><td>PAYMENT_METHOD</td><td>A notification relating to a payment method on an agreement</td></tr><tr><td>PAYMENT</td><td>A notification relating to a payment linked to an agreement</td></tr></table>"
+      enum:
+        - AGREEMENT
+        - PAYMENT_METHOD
+        - PAYMENT
+      example: PAYMENT_METHOD
+
+    paymentModuleType:
+      description: "The type of the payment module.\n<table><tr><th>Code</th><th>Description</th></tr><tr><td>PAYTO</td><td>NPP PayTo mandate</td></tr></table>"
+      type: string
+      enum:
+        - PAYTO
+      example: PAYTO
+
+    paymentMethodStatusType:
+      description: "The type of payment method change made.\n<table><tr><th>Code</th><th>Description</th></tr><tr><td>ACTIVE</td><td>The method is active and payments can be processed.</td></tr><tr><td>INACTIVE</td><td>The payment method is inactive and no payments can be processed.</td></tr></table>"
+      type: string
+      enum:
+        - ACTIVE
+        - INACTIVE
+      example: ACTIVE
+
+    paymentMethodEventType:
+      description: "The type of payment method change made.\n<table><tr><th>Code</th><th>Description</th></tr><tr><td>CREATED</td><td>A new payment method has been created on an agreement.</td></tr><tr><td>UPDATED</td><td>An existing payment method has been updated.</td></tr><tr><td>ACTIVATED</td><td>The method has been activated and payments can be processed.</td></tr><tr><td>DEACTIVATED</td><td>The payment method has been deactivated and no payments can be processed.</td></tr></table>"
+      type: string
+      enum:
+        - CREATED
+        - UPDATED
+        - ACTIVATED
+        - DEACTIVATED
+        - CREATION_FAILED
+      example: ACTIVATED
+
+    paytoNotificationTriggerType:
+      description: "Specifies a character string with a maximum length of 4 characters. \n trigger values: \n\n \n <table><tr><td>Code</td><td>Name</td><td>Description</td></tr><tr><td>MCRC</td><td>MandateCreateConfirmed</td><td>Sent to the initiator of a bilateral mandate creation to indicate that the Payer has confirmed the action.</td></tr><tr><td>MCRD</td><td>MandateCreateDeclined</td><td>Sent to the initiator of a bilateral mandate creation to indicate that the Payer has declined the action.</td></tr><tr><td>MCRX</td><td>MandateCreateExpired</td><td>Sent to the initiator of a mandate creation action once its expiry time has been reached and the status of the action is set to Timed Out (TIMO). For a bilateral creation action, this notification is also sent to the servicer of the Debtor Account.</td></tr><tr><td>MAMC</td><td>MandateAmendConfirmed</td><td>Sent to the initiator of a bilateral mandate amendment to indicate that the Payer has confirmed the action.</td></tr><tr><td>MAMD</td><td>MandateAmendDeclined</td><td>Sent to the initiator of a bilateral mandate amendment to indicate that the Payer has declined the action.</td></tr><tr><td>MAMN</td><td>MandateAmended</td><td>Sent to the Initiator, unilateral mandate amendment to indicate that action has occurred.</td></tr><tr><tr><td>MAMX</td><td>MandateAmendExpired</td><td>Sent to the initiator of an amend action once its expiry time has been reached and the status of the action is set to Timed Out (TIMO). For a bilateral amend action, this notification is also sent to the servicer of the Debtor Account.</td></tr><tr><td>MPOF</td><td>MandatePortFinalised</td><td>Sent to the old bank to indicate that the porting of a mandate has been finalised.</td></tr><tr><td>MPOT</td><td>MandatePorted</td><td>Sent to the Initiator when payer porting is finalised.</td></tr><tr><td>MPOX</td><td>MandatePortExpired</td><td>Sent to the initiator of a mandate port action once its expiry time has been reached and the status of the action is set to Timed Out (TIMO).</td></tr><tr><td>MSCH</td><td>MandateStatusChanged</td><td>Sent to the Initiator, unilateral mandate status change to indicate that action has occurred.</td></tr><tr><td>CSCH</td><td>CuscalMandateStatusChanged</td><td>Sent to the Initiator, when mandate might pause or cancel due to fraud concerns or the expired mandate is cancelled when expiry date is reached or last payment initiation has occurred.</td></tr><tr><td>CCRR</td><td>CuscalMandateCreateRecalled</td><td>Cuscal might recall a mandate due to Mandate Expiry or Last Payment Collection Taking Place</td></tr><tr><td>IAMN</td><td>InitiatorMandateAmended</td><td>Sent to the Initiator of the mandate when a unilateral Mandate Amend is performed by Initiator on HUB</td></tr><tr><td>ISCH</td><td>InitiatorMandateStatusChanged</td><td>Sent to the Initiator of a mandate to indicate that a status change is performed by Initiator on HUB</td></tr><tr><td>IAMP</td><td>InitiatorMandateAmendProposed</td><td>Sent to the Initiator of a mandate to indicate that a bilateral mandate amend is performed by Initiator on HUB</td></tr><tr><td>IAMR</td><td>InitiatorMandateAmendRecalled</td><td>Sent to the Initiator of a mandate to indicate that a bilateral mandate amend is recalled by Initiator on HUB</td></tr><tr><td>ICRR</td><td>InitiatorMandateCreateRecalled</td><td>Sent to the Initiator of a mandate to indicate that a bilateral mandate create is recalled by Initiator on HUB</td></tr></table></table>"
+      type: string
+      enum:
+        - MCRC
+        - MCRD
+        - MCRX
+        - MAMC
+        - MAMD
+        - MAMN
+        - MAMX
+        - MPOF
+        - MPOT
+        - MPOX
+        - MSCH
+        - CSCH
+        - IAMN
+        - ISCH
+        - IAMP
+        - IAMR
+        - ICRR
+      example: MCRC
+
+    mandateStatusType:
+      description: "Enumeration of the states that a mandate can have.\n<table><tr><th>Code</th><th>Name</th><th>Description</th></tr><tr><td>ACTV</td><td>Active</td><td>The mandate has a status of active.</td></tr><tr><td>CNCD</td><td>Cancelled</td><td>The mandate has a status of cancelled.</td></tr><tr><td>CRTD</td><td>Created</td><td>The mandate has a status of created.</td></tr><tr><td>SUSD</td><td>Suspended</td><td>The mandate has a status of suspended.</td></tr></table>"
+      type: string
+      enum:
+        - ACTV
+        - CNCD
+        - CRTD
+        - SUSD
+      example: ACTV
+
+    mandateStatusReasonType:
+      description: "<p>Code defining the reason for the status change to the mandate. </p> <table><tr><td><b>Code</b></td><td><b>Description</b></td></tr><tr><td>AC02</td><td>InvalidDebtorAccountNumber</td></tr><tr><td>AC04</td><td>ClosedAccountNumber</td></tr><tr><td>AC05</td><td>ClosedDebtorAccountNumber</td></tr><tr><td>AC06</td><td>BlockedAccount</td></tr><tr><td>AC13</td><td>InvalidDebtorAccountType</td></tr><tr><td>AG01</td><td>TransactionForbidden</td></tr><tr><td>AG03</td><td>TransactionNotSupported</td></tr><tr><td>AM03</td><td>NotAllowedCurrency</td></tr><tr><td>AM12</td><td>InvalidAmount</td></tr><tr><td>AM14</td><td>AmountExceedsAgreedLimit</td></tr><tr><td>CTAM</td><td>ContractAmended</td></tr><tr><td>CTCA</td><td>ContractCancellationInitiatedByDebtor</td></tr><tr><td>CTEX</td><td>ContractExpired</td></tr><tr><td>MCFC</td><td>MandateSuspendedFinalCollection</td></tr><tr><td>MCOC</td><td>MandateSuspendedOnceOffCollection</td></tr><tr><td>MD07</td><td>EndCustomerDeceased</td></tr><tr><td>MD08</td><td>NoMandateServiceByAgent</td></tr><tr><td>MD09</td><td>NoMandateServiceOnCustomer</td></tr><tr><td>MD16</td><td>RequestedByCustomer</td></tr><tr><td>MD17</td><td>RequestedByInitiatingParty</td></tr><tr><td>MD20</td><td>MandateExpired</td></tr><tr><td>MD21</td><td>MandateCancelledDueToFraud</td></tr><tr><td>MS02</td><td>NotSpecifiedReasonCustomer Generated</td></tr><tr><td>MS03</td><td>NotSpecifiedReasonAgentGenerated</td></tr><tr><td>MSUC</td><td>MandateSuspended7ConsecutiveUnsuccessfulCollections</td></tr><tr><td>NARR</td><td>Narrative</td></tr><tr><td>NOAS</td><td>NoAnswerFromCustomer</td></tr><tr><td>RR04</td><td>Regulatory Reason</td></tr><tr><td>SL01</td><td>Specific Service offered by Debtor Agent</td></tr><tr><td>SL11</td><td>Creditor not on Whitelist of Debtor</td></tr><tr><td>SL12</td><td>Creditor on Blacklist of Debtor</td></tr></table>"
+      type: string
+      enum:
+        - AC02
+        - AC04
+        - AC05
+        - AC06
+        - AC13
+        - AG01
+        - AG03
+        - AM03
+        - AM12
+        - AM14
+        - CTAM
+        - CTCA
+        - CTEX
+        - MCFC
+        - MCOC
+        - MD07
+        - MD08
+        - MD09
+        - MD16
+        - MD17
+        - MD20
+        - MD21
+        - MS02
+        - MS03
+        - MSUC
+        - NARR
+        - NOAS
+        - RR04
+        - SL01
+        - SL11
+        - SL12
+      example: MD16
+
+    paytoMandateActionType:
+      description: "Enumeration of all mandate action types.\n<table><tr><th>Code</th><th>Name</th><th>Description</th></tr><tr><td>AMND</td><td>Amend</td><td>Mandate amendment.</td></tr><tr><td>CREA</td><td>Create</td><td>Mandate creation.</td></tr><tr><td>PORT</td><td>Port</td><td>Mandate porting.</td></tr><tr><td>STCH</td><td>StatusChange</td><td>Mandate status change.</td></tr></table>"
+      type: string
+      enum:
+        - AMND
+        - CREA
+        - PORT
+        - STCH
+      example: STCH
+
+    paytoMandateActionStatusType:
+      description: "Enumeration of the states that a mandate action can have.\n<table><tr><th>Code</th><th>Name</th><th>Description</th></tr><tr><td>CMPL</td><td>Completed</td><td><p>This status represents the following situations:</p>\n<ul>\n<li>A bilateral action that has been confirmed.</li>\n<li>A unilateral action has been performed.</li>\n<li>A port that has been finalised.</li>\n</ul>\n</td></tr><tr><td>DECL</td><td>Declined</td><td>Action has been declined.</td></tr><tr><td>PEND</td><td>Pending</td><td><p>This status represents the following situations:</p>\n<ul>\n<li>A bilateral action that is waiting to be confirmed.</li>\n<li>A porting action that has been initiated and is waiting to be finalised.</li>\n</ul>\n</td></tr><tr><td>RECL</td><td>Recalled</td><td>Action has been recalled.</td></tr><tr><td>TIMO</td><td>TimedOut</td><td>Action was created bilaterally and has now timed out.</td></tr></table>"
+      type: string
+      enum:
+        - CMPL
+        - DECL
+        - RECL
+        - PEND
+        - TIMO
